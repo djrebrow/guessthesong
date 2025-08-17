@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SpyGame</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<header class="top">
+  <div id="roomHeader" data-i18n="room_label">Комната: —</div>
+  <div class="spacer"></div>
+  <select id="langSelect" aria-label="Language">
+    <option value="ru">RU</option>
+    <option value="de">DE</option>
+    <option value="pl">PL</option>
+    <option value="en">EN</option>
+  </select>
+  <button id="rulesBtn" data-i18n="rules_btn">Правила</button>
+</header>
+
+<main>
+  <!-- AUTH -->
+  <section id="screen-auth">
+    <h2 data-i18n="welcome_title">Онлайн «Шпион»</h2>
+    <input id="nickname" placeholder="Ник"/>
+    <div class="row">
+      <label for="category" data-i18n="category_label">Категория</label>
+      <select id="category"></select>
+    </div>
+    <div class="row">
+      <button id="createRoomBtn" data-i18n="create_room">Создать комнату</button>
+    </div>
+    <div class="row join">
+      <input id="joinCode" placeholder="Код (4)"/>
+      <button id="joinRoomBtn" data-i18n="join_room">Войти</button>
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="screen-lobby" style="display:none">
+    <div class="pillrow">
+      <div id="hostPill" class="pill">Хост: —</div>
+      <div id="roundPill" class="pill">Раунд: 1</div>
+      <div id="categoryPill" class="pill">Категория: —</div>
+    </div>
+    <div class="row">
+      <button id="copyCodeBtn">Код</button>
+      <button id="copyLinkBtn">Ссылка</button>
+      <button id="rulesBtnRoundLobby">Правила</button>
+      <div class="spacer"></div>
+      <button id="leaveRoomBtn">Выйти</button>
+    </div>
+
+    <h3>Игроки</h3>
+    <div id="playersList" class="list"></div>
+
+    <div class="row">
+      <button id="startGameBtn" class="primary">Старт</button>
+    </div>
+
+    <h3>Табло</h3>
+    <div id="scoreboard" class="list"></div>
+  </section>
+
+  <!-- ROUND -->
+  <section id="screen-round" style="display:none">
+    <div class="pillrow">
+      <div id="myNamePill" class="pill">—</div>
+      <div id="roleTag" class="pill">Роль: —</div>
+      <div id="phaseTag" class="pill">Фаза: —</div>
+      <div id="timerBox" class="pill">02:00</div>
+    </div>
+
+    <div class="wordbox" id="wordBox" data-i18n="word_appears_here">Слово появится здесь</div>
+    <div class="hint" id="hintBox" data-i18n="hint_citizen">Говорите намёками, не палите слово!</div>
+
+    <div class="row">
+      <button id="revealBtn">К голосованию</button>
+      <button id="rulesBtnRound">Правила</button>
+      <div class="spacer"></div>
+      <button id="exitToLobbyBtn">В лобби</button>
+    </div>
+
+    <div id="voteSection" style="display:none">
+      <h3>Голосование</h3>
+      <div id="voteGrid" class="list"></div>
+    </div>
+
+    <div id="resultSection" style="display:none">
+      <h3>Результат</h3>
+      <div id="resultText"></div>
+      <div class="row">
+        <button id="nextRoundBtn" class="primary">Следующий раунд</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal root -->
+<div class="modal-backdrop" style="display:none"></div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
