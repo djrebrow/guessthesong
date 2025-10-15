@@ -461,9 +461,11 @@ export const useRosterStore = create<RosterStore>()(
         cells: state.cells,
         settings: state.settings,
         filters: state.filters,
-        initialized: state.initialized,
         calendarBase: state.calendarBase,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.initialize();
+      },
     },
   ),
 );

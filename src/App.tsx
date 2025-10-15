@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRosterStore } from './state/useRosterStore';
 import RosterPage from './pages/RosterPage';
 
@@ -6,9 +6,33 @@ const App = () => {
   const initialize = useRosterStore((state) => state.initialize);
   const initialized = useRosterStore((state) => state.initialized);
   const { highContrast, fontScale } = useRosterStore((state) => state.settings);
+  const [hydrated, setHydrated] = useState(
+    typeof useRosterStore.persist?.hasHydrated === 'function'
+      ? useRosterStore.persist.hasHydrated()
+      : true,
+  );
 
   useEffect(() => {
-    initialize();
+    const finishHydration = useRosterStore.persist?.onFinishHydration?.(() => {
+      setHydrated(true);
+      initialize();
+    });
+
+    const startHydration = useRosterStore.persist?.onHydrate?.(() => {
+      setHydrated(false);
+    });
+
+    if (useRosterStore.persist?.hasHydrated?.()) {
+      setHydrated(true);
+      initialize();
+    } else if (!startHydration) {
+      initialize();
+    }
+
+    return () => {
+      finishHydration?.();
+      startHydration?.();
+    };
   }, [initialize]);
 
   return (
@@ -16,7 +40,13 @@ const App = () => {
       className={`min-h-screen ${highContrast ? 'bg-white text-black' : 'bg-slate-100 text-slate-900'}`}
       style={{ fontSize: `${fontScale}rem` }}
     >
-      {initialized && <RosterPage />}
+      {hydrated && initialized ? (
+        <RosterPage />
+      ) : (
+        <div className="flex min-h-screen items-center justify-center">
+          <span className="text-lg font-semibold">Dienstplan wird geladen …</span>
+        </div>
+      )}
     </div>
   );
 };
