@@ -9,9 +9,20 @@ export const fromISOWeek = (isoYear: number, isoWeek: number): Date => {
   if (isoWeek < 1 || isoWeek > 53) {
     throw new RangeError('ISO week must be between 1 and 53');
   }
-  const fourthJanuary = new Date(Date.UTC(isoYear, 0, 4));
-  const firstWeekStart = startOfISOWeek(fourthJanuary);
-  return addWeeks(firstWeekStart, isoWeek - 1);
+
+  const fourthJanuaryUTC = new Date(Date.UTC(isoYear, 0, 4));
+  const firstWeekStartLocal = startOfISOWeek(fourthJanuaryUTC);
+  const firstWeekMondayUTC = new Date(
+    Date.UTC(
+      firstWeekStartLocal.getUTCFullYear(),
+      firstWeekStartLocal.getUTCMonth(),
+      firstWeekStartLocal.getUTCDate(),
+    ),
+  );
+
+  const result = new Date(firstWeekMondayUTC);
+  result.setUTCDate(result.getUTCDate() + (isoWeek - 1) * 7);
+  return result;
 };
 
 export const buildWeeks = (startMonday: Date, numWeeks: number): Week[] => {
