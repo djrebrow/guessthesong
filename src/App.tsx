@@ -24,16 +24,21 @@ const App = () => {
 
     if (useRosterStore.persist?.hasHydrated?.()) {
       setHydrated(true);
-      initialize();
-    } else if (!startHydration) {
-      initialize();
     }
+
+    initialize();
 
     return () => {
       finishHydration?.();
       startHydration?.();
     };
   }, [initialize]);
+
+  useEffect(() => {
+    if (initialized) {
+      setHydrated(true);
+    }
+  }, [initialized]);
 
   return (
     <div
