@@ -11,17 +11,10 @@ export const fromISOWeek = (isoYear: number, isoWeek: number): Date => {
   }
 
   const fourthJanuaryUTC = new Date(Date.UTC(isoYear, 0, 4));
-  const firstWeekStartLocal = startOfISOWeek(fourthJanuaryUTC);
-  const firstWeekMondayUTC = new Date(
-    Date.UTC(
-      firstWeekStartLocal.getFullYear(),
-      firstWeekStartLocal.getMonth(),
-      firstWeekStartLocal.getDate(),
-    ),
-  );
-
-  const result = new Date(firstWeekMondayUTC);
-  result.setUTCDate(result.getUTCDate() + (isoWeek - 1) * 7);
+  const weekday = fourthJanuaryUTC.getUTCDay() || 7; // convert Sunday(0) to 7
+  const diffToMonday = 1 - weekday;
+  const result = new Date(fourthJanuaryUTC);
+  result.setUTCDate(result.getUTCDate() + diffToMonday + (isoWeek - 1) * 7);
   return result;
 };
 
