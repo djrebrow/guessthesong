@@ -440,21 +440,23 @@ const RosterPage = ({ allowEditing = true, onNavigateAdmin, onNavigatePublic, on
           onEmployeeChange={(value) => setFilters({ employeeQuery: value })}
           onAssignmentChange={(value) => setFilters({ assignment: value as any })}
         />
-        <SettingsPanel
-          highContrast={settings.highContrast}
-          fontScale={settings.fontScale}
-          dateFormat={settings.dateFormat}
-          autoHolidayMarking={settings.autoHolidayMarking}
-          bundesland={settings.bundesland}
-          onToggleContrast={() => setSettings({ highContrast: !settings.highContrast })}
-          onIncreaseFont={() => setSettings({ fontScale: Math.min(settings.fontScale + 0.05, 1.4) })}
-          onDecreaseFont={() => setSettings({ fontScale: Math.max(settings.fontScale - 0.05, 0.8) })}
-          onToggleDateFormat={() =>
-            setSettings({ dateFormat: settings.dateFormat === 'D.M.YYYY' ? 'DD.MM.YYYY' : 'D.M.YYYY' })
-          }
-          onToggleHolidayMarking={(value) => setSettings({ autoHolidayMarking: value })}
-          onBundeslandChange={(value) => setSettings({ bundesland: value })}
-        />
+        {allowEditing && (
+          <SettingsPanel
+            highContrast={settings.highContrast}
+            fontScale={settings.fontScale}
+            dateFormat={settings.dateFormat}
+            autoHolidayMarking={settings.autoHolidayMarking}
+            bundesland={settings.bundesland}
+            onToggleContrast={() => setSettings({ highContrast: !settings.highContrast })}
+            onIncreaseFont={() => setSettings({ fontScale: Math.min(settings.fontScale + 0.05, 1.4) })}
+            onDecreaseFont={() => setSettings({ fontScale: Math.max(settings.fontScale - 0.05, 0.8) })}
+            onToggleDateFormat={() =>
+              setSettings({ dateFormat: settings.dateFormat === 'D.M.YYYY' ? 'DD.MM.YYYY' : 'D.M.YYYY' })
+            }
+            onToggleHolidayMarking={(value) => setSettings({ autoHolidayMarking: value })}
+            onBundeslandChange={(value) => setSettings({ bundesland: value })}
+          />
+        )}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {weekColumns.map((columnWeeks, index) => (
             <div key={index} className="flex flex-col gap-4">

@@ -16,6 +16,12 @@ const AdminPortal = () => {
     }
   }, [status, initializeAuth]);
 
+  useEffect(() => {
+    return () => {
+      void logout();
+    };
+  }, [logout]);
+
   if (status !== 'authenticated') {
     return <AdminLoginForm />;
   }
