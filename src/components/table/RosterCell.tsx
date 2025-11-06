@@ -12,6 +12,7 @@ interface RosterCellProps {
   weekId: string;
   dayIndex: number;
   value: DayAssignment | null;
+  allowEditing: boolean;
   onChange: (value: DayAssignment | null) => void;
   onSelect: () => void;
   selected: boolean;
@@ -30,6 +31,7 @@ const RosterCell = ({
   weekId,
   dayIndex,
   value,
+  allowEditing,
   onChange,
   onSelect,
   selected,
@@ -47,13 +49,14 @@ const RosterCell = ({
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const filterTimer = useRef<number | null>(null);
+  const editable = allowEditing && !locked;
 
   useEffect(() => {
-    if (locked) {
+    if (!editable) {
       setOpen(false);
       setMenuPosition(null);
     }
-  }, [locked]);
+  }, [editable]);
 
   useEffect(() => {
     if (!open && filterTerm) {
@@ -81,7 +84,7 @@ const RosterCell = ({
   }, [filterTerm]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (locked) {
+    if (!allowEditing || locked) {
       if (['Enter', ' ', 'f', 's', 'a', 'h'].includes(event.key.toLowerCase())) {
         event.preventDefault();
       }
@@ -166,7 +169,7 @@ const RosterCell = ({
 
   const openMenu = (event: React.MouseEvent) => {
     event.preventDefault();
-    if (locked) return;
+    if (!editable) return;
     setMenuPosition({ x: event.clientX, y: event.clientY });
     onSelect();
   };
@@ -191,20 +194,20 @@ const RosterCell = ({
       onKeyDown={handleKeyDown}
       onClick={() => {
         onSelect();
-        if (!locked) {
+        if (editable) {
           setOpen((prev) => !prev);
         }
       }}
       onContextMenu={openMenu}
       className={`relative flex h-12 ${
-        locked ? 'cursor-not-allowed' : 'cursor-pointer'
+        editable ? 'cursor-pointer' : 'cursor-default'
       } items-center justify-center border border-slate-300 text-sm font-semibold outline-none transition ${
         selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-slate-100' : 'focus:ring-1 focus:ring-orange-400'
       } ${getAssignmentColor(value, highContrast)} ${isSpecialAssignment(value) ? 'uppercase tracking-wide' : ''}`}
       title={tooltip}
     >
       <span>{value ?? ''}</span>
-      {open && !locked && (
+      {open && editable && (
         <div
           role="listbox"
           aria-activedescendant={value ?? undefined}
@@ -241,7 +244,7 @@ const RosterCell = ({
           </div>
         </div>
       )}
-      {menuPosition && !locked && (
+      {menuPosition && editable && (
         <div
           role="menu"
           className="fixed z-40 w-60 rounded-md border border-slate-300 bg-white py-1 text-sm shadow-xl"

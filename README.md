@@ -15,6 +15,7 @@ Diese Anwendung stellt einen farbcodierten Dienstplan für die Kalenderwochen 42
 - Bearbeitbare Mitarbeiterliste mit Hinzufügen, Entfernen und Sortieren direkt im Dialog.
 - Kalenderbasis-Dialog zur dynamischen Neuberechnung der Wochen inklusive optionaler Übernahme bestehender Einträge.
 - Automatische Feiertagslogik für Niedersachsen mit gesperrten, gelb markierten Spalten.
+- Getrennter Adminbereich für sämtliche Bearbeitungen (öffentliche Ansicht ist schreibgeschützt).
 - Tests für Parser, Exporter und Validierung via Vitest.
 
 ## Installation & Entwicklung

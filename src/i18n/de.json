@@ -21,7 +21,9 @@
       "import": "Import",
       "print": "Drucken",
       "undo": "Rückgängig",
-      "redo": "Wiederholen"
+      "redo": "Wiederholen",
+      "enterAdmin": "Zum Adminbereich",
+      "leaveAdmin": "Zur Übersicht"
     },
     "legend": "Legende",
     "statistics": "Summen",
