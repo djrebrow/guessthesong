@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useRosterStore } from './state/useRosterStore';
 import AdminPortal from './pages/AdminPortal';
 import PublicRosterView from './pages/PublicRosterView';
+import { useRosterStore } from './state/useRosterStore';
+import RosterPage from './pages/RosterPage';
 
 const App = () => {
   const initialize = useRosterStore((state) => state.initialize);
@@ -48,13 +50,7 @@ const App = () => {
       style={{ fontSize: `${fontScale}rem` }}
     >
       {hydrated && initialized ? (
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<PublicRosterView />} />
-            <Route path="/admin" element={<AdminPortal />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+        <RosterPage />
       ) : (
         <div className="flex min-h-screen items-center justify-center">
           <span className="text-lg font-semibold">Dienstplan wird geladen …</span>

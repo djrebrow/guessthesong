@@ -6,7 +6,6 @@ interface WeekBlockProps {
   employees: Employee[];
   cells: RosterCell[];
   selectedCell: SelectedCell | null;
-  allowEditing: boolean;
   onSelectCell: (cell: SelectedCell) => void;
   onChangeCell: (cell: SelectedCell, value: RosterCell['value']) => void;
   onFillWeek: (employeeId: string, weekId: string, value: RosterCell['value']) => void;
@@ -24,7 +23,6 @@ const WeekBlock = ({
   employees,
   cells,
   selectedCell,
-  allowEditing,
   onSelectCell,
   onChangeCell,
   onFillWeek,
@@ -45,7 +43,6 @@ const WeekBlock = ({
           employees={employees}
           cells={cells}
           selectedCell={selectedCell}
-          allowEditing={allowEditing}
           onSelectCell={onSelectCell}
           onChangeCell={onChangeCell}
           onFillWeek={onFillWeek}

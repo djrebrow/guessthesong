@@ -59,6 +59,13 @@ const RosterCell = ({
   }, [editable]);
 
   useEffect(() => {
+    if (locked) {
+      setOpen(false);
+      setMenuPosition(null);
+    }
+  }, [locked]);
+
+  useEffect(() => {
     if (!open && filterTerm) {
       setFilterTerm('');
     }
@@ -85,6 +92,7 @@ const RosterCell = ({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!allowEditing || locked) {
+    if (locked) {
       if (['Enter', ' ', 'f', 's', 'a', 'h'].includes(event.key.toLowerCase())) {
         event.preventDefault();
       }
@@ -170,6 +178,7 @@ const RosterCell = ({
   const openMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     if (!editable) return;
+    if (locked) return;
     setMenuPosition({ x: event.clientX, y: event.clientY });
     onSelect();
   };
@@ -195,19 +204,21 @@ const RosterCell = ({
       onClick={() => {
         onSelect();
         if (editable) {
+        if (!locked) {
           setOpen((prev) => !prev);
         }
       }}
       onContextMenu={openMenu}
       className={`relative flex h-12 ${
         editable ? 'cursor-pointer' : 'cursor-default'
+        locked ? 'cursor-not-allowed' : 'cursor-pointer'
       } items-center justify-center border border-slate-300 text-sm font-semibold outline-none transition ${
         selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-slate-100' : 'focus:ring-1 focus:ring-orange-400'
       } ${getAssignmentColor(value, highContrast)} ${isSpecialAssignment(value) ? 'uppercase tracking-wide' : ''}`}
       title={tooltip}
     >
       <span>{value ?? ''}</span>
-      {open && editable && (
+      {open && !locked && (
         <div
           role="listbox"
           aria-activedescendant={value ?? undefined}
@@ -244,7 +255,7 @@ const RosterCell = ({
           </div>
         </div>
       )}
-      {menuPosition && editable && (
+      {menuPosition && !locked && (
         <div
           role="menu"
           className="fixed z-40 w-60 rounded-md border border-slate-300 bg-white py-1 text-sm shadow-xl"

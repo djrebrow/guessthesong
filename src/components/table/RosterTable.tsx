@@ -8,7 +8,6 @@ interface RosterTableProps {
   employees: Employee[];
   cells: RosterCell[];
   selectedCell: SelectedCell | null;
-  allowEditing: boolean;
   onSelectCell: (cell: SelectedCell) => void;
   onChangeCell: (cell: SelectedCell, value: RosterCell['value']) => void;
   onFillWeek: (employeeId: string, weekId: string, value: RosterCell['value']) => void;
@@ -26,7 +25,6 @@ const RosterTable = ({
   employees,
   cells,
   selectedCell,
-  allowEditing,
   onSelectCell,
   onChangeCell,
   onFillWeek,
@@ -63,28 +61,27 @@ const RosterTable = ({
             </tr>
           </thead>
           <tbody>
-          {employees.map((employee) => (
-            <tr key={`${week.id}-${employee.id}`} className="odd:bg-white even:bg-slate-50 hover:bg-orange-50">
-              <th
-                scope="row"
-                className="sticky left-0 z-10 border border-slate-300 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-700"
-              >
-                {employee.name}
-              </th>
-              {week.days.map((day, index) => {
-                const cellValue = findCellValue(cells, employee.id, week.id, index);
-                const cell: SelectedCell = { employeeId: employee.id, weekId: week.id, dayIndex: index };
-                const lockKey = `${week.id}:${index}`;
-                const lockInfo = holidayLocks[lockKey];
-                return (
-                  <td key={day.label + employee.id} className="p-0">
-                    <RosterCellComponent
-                      employeeId={employee.id}
-                      weekId={week.id}
-                      dayIndex={index}
-                      allowEditing={allowEditing}
-                      value={cellValue}
-                      onChange={(newValue) => onChangeCell(cell, newValue)}
+            {employees.map((employee) => (
+              <tr key={`${week.id}-${employee.id}`} className="odd:bg-white even:bg-slate-50 hover:bg-orange-50">
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 border border-slate-300 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-700"
+                >
+                  {employee.name}
+                </th>
+                {week.days.map((day, index) => {
+                  const cellValue = findCellValue(cells, employee.id, week.id, index);
+                  const cell: SelectedCell = { employeeId: employee.id, weekId: week.id, dayIndex: index };
+                  const lockKey = `${week.id}:${index}`;
+                  const lockInfo = holidayLocks[lockKey];
+                  return (
+                    <td key={day.label + employee.id} className="p-0">
+                      <RosterCellComponent
+                        employeeId={employee.id}
+                        weekId={week.id}
+                        dayIndex={index}
+                        value={cellValue}
+                        onChange={(newValue) => onChangeCell(cell, newValue)}
                         onSelect={() => onSelectCell(cell)}
                         selected={
                           !!selectedCell &&
