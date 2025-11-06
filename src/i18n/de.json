@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "Dienstplan KW 42–47/2025",
+    "subtitle": "Lager & Kommissionierung",
+    "filters": {
+      "employee": "Mitarbeiter",
+      "assignment": "Schichttyp",
+      "all": "Alle"
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "contrast": "High-Contrast aktivieren",
+      "fontUp": "Schriftgröße +",
+      "fontDown": "Schriftgröße -",
+      "dateFormat": "Datumsformat",
+      "autoHolidays": "Feiertage automatisch markieren",
+      "region": "Bundesland"
+    },
+    "actions": {
+      "export": "Export",
+      "import": "Import",
+      "print": "Drucken",
+      "undo": "Rückgängig",
+      "redo": "Wiederholen",
+      "enterAdmin": "Zum Adminbereich",
+      "leaveAdmin": "Zur Übersicht",
+      "logout": "Abmelden"
+    },
+    "legend": "Legende",
+    "statistics": "Summen",
+    "note": "Spätschicht plant sich bei Bedarf ein / Unterstützung in allen Bereichen.\nGilt nicht an gesetzlichen Feiertagen, bei Urlaub usw.!",
+    "warnings": {
+      "conflict": "Konflikt: Eintrag bereits vorhanden",
+      "import": "Import abgeschlossen",
+      "importError": "Import konnte nicht durchgeführt werden",
+      "export": "Export erstellt"
+    }
+  },
+  "table": {
+    "week": "KW",
+    "ap": "AP",
+    "name": "Name"
+  },
+  "admin": {
+    "loginTitle": "Adminbereich",
+    "passwordLabel": "Passwort",
+    "loginButton": "Anmelden",
+    "loginBusy": "Anmeldung…",
+    "loginHint": "Bitte geben Sie das administrative Passwort ein, um Änderungen vorzunehmen."
+  }
+}
