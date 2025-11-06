@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useRosterStore } from './state/useRosterStore';
+import { useAuthStore } from './state/useAuthStore';
 import AdminPortal from './pages/AdminPortal';
 import PublicRosterView from './pages/PublicRosterView';
 
@@ -8,10 +9,18 @@ const App = () => {
   const initialize = useRosterStore((state) => state.initialize);
   const initialized = useRosterStore((state) => state.initialized);
   const { highContrast, fontScale } = useRosterStore((state) => state.settings);
+  const initAuth = useAuthStore((state) => state.initialize);
+  const authStatus = useAuthStore((state) => state.status);
 
   useEffect(() => {
     void initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    if (authStatus === 'idle') {
+      void initAuth();
+    }
+  }, [authStatus, initAuth]);
 
   return (
     <div

@@ -28,6 +28,12 @@ npm run dev
 
 Vite startet anschließend unter <http://localhost:5173>. Die REST-API ist parallel unter <http://localhost:3000> verfügbar und wird über einen Proxy aus dem Vite-Dev-Server angesprochen.
 
+### Admin-Zugang
+
+- Das Passwort für den Adminbereich wird über die Umgebungsvariable `ADMIN_PASSWORD` gesetzt (Standard: `change-me`).
+- Optional kann die Lebensdauer eines Login-Tokens via `ADMIN_SESSION_TTL` (Millisekunden, Standard: 8 Stunden) angepasst werden.
+- Nur nach erfolgreicher Anmeldung unter `/admin` sind Bearbeitungen möglich; die öffentliche Ansicht bleibt schreibgeschützt.
+
 ### Tests
 
 ```bash
@@ -55,4 +61,4 @@ src/
 
 ## Hinweis
 
-Die Anwendung erzeugt beim ersten Start Beispielbelegungen. Änderungen werden automatisch auf dem Server gespeichert und stehen nach einem Neustart direkt wieder bereit.
+Die Anwendung erzeugt beim ersten Start Beispielbelegungen. Änderungen werden automatisch auf dem Server gespeichert und stehen nach einem Neustart direkt wieder bereit. Läuft die Sitzung ab, muss die Admin-Anmeldung erneut durchgeführt werden.

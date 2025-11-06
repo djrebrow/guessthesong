@@ -111,3 +111,8 @@ export interface CopyBuffer {
   employeeId?: string;
   cells: RosterCell[];
 }
+
+export interface AuthSession {
+  token: string;
+  expiresAt: string;
+}

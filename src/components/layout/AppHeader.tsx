@@ -13,6 +13,7 @@ interface AppHeaderProps {
   onOpenCalendarBase?: () => void;
   onNavigateAdmin?: () => void;
   onNavigatePublic?: () => void;
+  onLogout?: () => void;
 }
 
 const AppHeader = ({
@@ -28,6 +29,7 @@ const AppHeader = ({
   onOpenCalendarBase,
   onNavigateAdmin,
   onNavigatePublic,
+  onLogout,
 }: AppHeaderProps) => {
   const { t } = useTranslation();
   return (
@@ -42,6 +44,15 @@ const AppHeader = ({
         <div className="flex flex-wrap items-center gap-2">
           {mode === 'admin' ? (
             <>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="rounded border border-orange-500 bg-white px-3 py-1 text-sm font-semibold text-orange-600 transition hover:bg-orange-50"
+                >
+                  {t('app.actions.logout')}
+                </button>
+              )}
               {onNavigatePublic && (
                 <button
                   type="button"

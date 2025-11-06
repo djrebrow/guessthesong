@@ -23,7 +23,8 @@
       "undo": "Rückgängig",
       "redo": "Wiederholen",
       "enterAdmin": "Zum Adminbereich",
-      "leaveAdmin": "Zur Übersicht"
+      "leaveAdmin": "Zur Übersicht",
+      "logout": "Abmelden"
     },
     "legend": "Legende",
     "statistics": "Summen",
@@ -39,5 +40,12 @@
     "week": "KW",
     "ap": "AP",
     "name": "Name"
+  },
+  "admin": {
+    "loginTitle": "Adminbereich",
+    "passwordLabel": "Passwort",
+    "loginButton": "Anmelden",
+    "loginBusy": "Anmeldung…",
+    "loginHint": "Bitte geben Sie das administrative Passwort ein, um Änderungen vorzunehmen."
   }
 }

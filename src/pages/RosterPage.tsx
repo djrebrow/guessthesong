@@ -18,9 +18,10 @@ interface RosterPageProps {
   allowEditing?: boolean;
   onNavigateAdmin?: () => void;
   onNavigatePublic?: () => void;
+  onLogout?: () => void;
 }
 
-const RosterPage = ({ allowEditing = true, onNavigateAdmin, onNavigatePublic }: RosterPageProps) => {
+const RosterPage = ({ allowEditing = true, onNavigateAdmin, onNavigatePublic, onLogout }: RosterPageProps) => {
   const rosterRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
@@ -421,6 +422,7 @@ const RosterPage = ({ allowEditing = true, onNavigateAdmin, onNavigatePublic }: 
         onOpenCalendarBase={allowEditing ? () => setCalendarDialogOpen(true) : undefined}
         onNavigateAdmin={allowEditing ? undefined : onNavigateAdmin}
         onNavigatePublic={allowEditing ? onNavigatePublic : undefined}
+        onLogout={allowEditing ? onLogout : undefined}
       />
       <main className="mx-auto flex max-w-[1800px] flex-col gap-6 px-4 py-6" ref={rosterRef}>
         {allowEditing && (

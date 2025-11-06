@@ -23,7 +23,8 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_WEEK_COUNT,
 } from '../lib/initialData';
-import { fetchRoster, saveRoster } from '../services/rosterApi';
+import { fetchRoster, saveRoster, UnauthorizedError } from '../services/rosterApi';
+import { useAuthStore } from './useAuthStore';
 
 export interface RosterStore extends RosterState {
   toasts: ToastMessage[];
@@ -157,9 +158,18 @@ export const useRosterStore = create<RosterStore>()((set, get) => {
   };
 
   const persistToServer = async (payload: PersistedRosterPayload) => {
+    const authState = useAuthStore.getState();
+    if (!authState.token) {
+      return;
+    }
     try {
-      await saveRoster(payload);
+      await saveRoster(payload, authState.token);
     } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        authState.markUnauthorized();
+        ensureErrorToast('Sitzung abgelaufen. Bitte erneut im Adminbereich anmelden.');
+        return;
+      }
       console.error('Failed to persist roster', error);
       ensureErrorToast('Speichern am Server fehlgeschlagen.');
     }
