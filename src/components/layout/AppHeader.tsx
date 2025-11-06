@@ -1,6 +1,22 @@
 import { useTranslation } from 'react-i18next';
 
 interface AppHeaderProps {
+  mode: 'view' | 'admin';
+  onExportCsv: () => void;
+  onExportXlsx: () => void;
+  onExportPdf: () => void;
+  onImport?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onPrint: () => void;
+  onManageEmployees?: () => void;
+  onOpenCalendarBase?: () => void;
+  onNavigateAdmin?: () => void;
+  onNavigatePublic?: () => void;
+}
+
+const AppHeader = ({
+  mode,
   onExportCsv: () => void;
   onExportXlsx: () => void;
   onExportPdf: () => void;
@@ -22,6 +38,8 @@ const AppHeader = ({
   onPrint,
   onManageEmployees,
   onOpenCalendarBase,
+  onNavigateAdmin,
+  onNavigatePublic,
 }: AppHeaderProps) => {
   const { t } = useTranslation();
   return (

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { useRosterStore } from './state/useRosterStore';
+import AdminPortal from './pages/AdminPortal';
+import PublicRosterView from './pages/PublicRosterView';
 import { useRosterStore } from './state/useRosterStore';
 import RosterPage from './pages/RosterPage';
 

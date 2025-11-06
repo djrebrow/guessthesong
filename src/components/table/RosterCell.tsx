@@ -12,6 +12,7 @@ interface RosterCellProps {
   weekId: string;
   dayIndex: number;
   value: DayAssignment | null;
+  allowEditing: boolean;
   onChange: (value: DayAssignment | null) => void;
   onSelect: () => void;
   selected: boolean;
@@ -30,6 +31,7 @@ const RosterCell = ({
   weekId,
   dayIndex,
   value,
+  allowEditing,
   onChange,
   onSelect,
   selected,
@@ -47,6 +49,14 @@ const RosterCell = ({
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const filterTimer = useRef<number | null>(null);
+  const editable = allowEditing && !locked;
+
+  useEffect(() => {
+    if (!editable) {
+      setOpen(false);
+      setMenuPosition(null);
+    }
+  }, [editable]);
 
   useEffect(() => {
     if (locked) {
@@ -81,6 +91,7 @@ const RosterCell = ({
   }, [filterTerm]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!allowEditing || locked) {
     if (locked) {
       if (['Enter', ' ', 'f', 's', 'a', 'h'].includes(event.key.toLowerCase())) {
         event.preventDefault();
@@ -166,6 +177,7 @@ const RosterCell = ({
 
   const openMenu = (event: React.MouseEvent) => {
     event.preventDefault();
+    if (!editable) return;
     if (locked) return;
     setMenuPosition({ x: event.clientX, y: event.clientY });
     onSelect();
@@ -191,12 +203,14 @@ const RosterCell = ({
       onKeyDown={handleKeyDown}
       onClick={() => {
         onSelect();
+        if (editable) {
         if (!locked) {
           setOpen((prev) => !prev);
         }
       }}
       onContextMenu={openMenu}
       className={`relative flex h-12 ${
+        editable ? 'cursor-pointer' : 'cursor-default'
         locked ? 'cursor-not-allowed' : 'cursor-pointer'
       } items-center justify-center border border-slate-300 text-sm font-semibold outline-none transition ${
         selected ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-slate-100' : 'focus:ring-1 focus:ring-orange-400'
