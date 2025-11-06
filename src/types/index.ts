@@ -88,6 +88,15 @@ export interface RosterState {
   holidayLocks: Record<string, HolidayLock>;
 }
 
+export interface PersistedRosterPayload {
+  employees: Employee[];
+  weeks: Week[];
+  cells: RosterCell[];
+  settings: SettingsState;
+  calendarBase: CalendarBase;
+  updatedAt?: string;
+}
+
 export interface SelectedCell {
   employeeId: string;
   weekId: string;

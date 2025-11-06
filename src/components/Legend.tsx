@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { DayAssignment } from '../types';
-import { assignmentOptions } from '../state/useRosterStore';
+import { assignmentOptions } from '../lib/initialData';
 
 const colorMap: Record<DayAssignment, string> = {
   Früh: 'bg-roster-early',

@@ -1,11 +1,11 @@
 # Dienstplan SPA
 
-Diese Anwendung stellt einen farbcodierten Dienstplan für die Kalenderwochen 42–47/2025 bereit. Sie wurde mit React, TypeScript, Vite und Tailwind CSS entwickelt und speichert Änderungen lokal im Browser.
+Diese Anwendung stellt einen farbcodierten Dienstplan für die Kalenderwochen 42–47/2025 bereit. Sie wurde mit React, TypeScript, Vite und Tailwind CSS entwickelt und speichert Änderungen über eine Node/Express-API dauerhaft auf dem Server.
 
 ## Features
 
 - Interaktive Tabellen mit Dropdown-Auswahl, Tastaturkürzeln, Copy & Paste sowie Kontextmenü.
-- Undo/Redo (50 Schritte), lokale Persistenz per `localStorage`.
+- Undo/Redo (50 Schritte), serverseitige Persistenz via REST-API.
 - Export nach CSV, Excel (XLSX) und PDF; Import von CSV/XLSX.
 - Statistik je Mitarbeiter und Woche, Legende und Hinweistext.
 - Filter nach Mitarbeitername und Schichttyp, High-Contrast-Modus, skalierbare Schrift, alternatives Datumsformat.
@@ -22,10 +22,11 @@ Diese Anwendung stellt einen farbcodierten Dienstplan für die Kalenderwochen 42
 
 ```bash
 npm install
+npm run dev:server # in separatem Terminal starten
 npm run dev
 ```
 
-Vite startet anschließend unter <http://localhost:5173>.
+Vite startet anschließend unter <http://localhost:5173>. Die REST-API ist parallel unter <http://localhost:3000> verfügbar und wird über einen Proxy aus dem Vite-Dev-Server angesprochen.
 
 ### Tests
 
@@ -54,4 +55,4 @@ src/
 
 ## Hinweis
 
-Die Anwendung erzeugt beim ersten Start Beispielbelegungen. Änderungen bleiben lokal gespeichert, bis der Browser-Speicher geleert wird oder ein Import durchgeführt wird.
+Die Anwendung erzeugt beim ersten Start Beispielbelegungen. Änderungen werden automatisch auf dem Server gespeichert und stehen nach einem Neustart direkt wieder bereit.

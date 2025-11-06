@@ -14,7 +14,13 @@ import { exportElementToPdf, exportToCsv, exportToXlsx } from '../utils/exporter
 import { parseCsv, parseXlsx } from '../utils/importers';
 import { detectConflicts } from '../utils/validation';
 
-const RosterPage = () => {
+interface RosterPageProps {
+  allowEditing?: boolean;
+  onNavigateAdmin?: () => void;
+  onNavigatePublic?: () => void;
+}
+
+const RosterPage = ({ allowEditing = true, onNavigateAdmin, onNavigatePublic }: RosterPageProps) => {
   const rosterRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
@@ -133,6 +139,7 @@ const RosterPage = () => {
 
   const handleChangeCell = useCallback(
     (cell: SelectedCell, value: DayAssignment | null) => {
+      if (!allowEditing) return;
       if (isHolidayLocked(cell.weekId, cell.dayIndex)) {
         addToast({ type: 'warning', message: 'Automatischer Feiertag kann nicht bearbeitet werden.' });
         return;
@@ -163,11 +170,12 @@ const RosterPage = () => {
       }
       setCell(cell.employeeId, cell.weekId, cell.dayIndex, value);
     },
-    [cells, setCell, clearCell, addToast, isHolidayLocked],
+    [cells, setCell, clearCell, addToast, isHolidayLocked, allowEditing],
   );
 
   const handleFillWeek = useCallback(
     (employeeId: string, weekId: string, value: DayAssignment | null) => {
+      if (!allowEditing) return;
       if (!value) return;
       const week = weeks.find((wk) => wk.id === weekId);
       if (!week) return;
@@ -179,11 +187,12 @@ const RosterPage = () => {
       }
       bulkSetCells(updates);
     },
-    [weeks, bulkSetCells, isHolidayLocked, addToast],
+    [weeks, bulkSetCells, isHolidayLocked, addToast, allowEditing],
   );
 
   const handleFillColumn = useCallback(
     (weekId: string, dayIndex: number, value: DayAssignment | null) => {
+      if (!allowEditing) return;
       if (!value) return;
       if (isHolidayLocked(weekId, dayIndex)) {
         addToast({ type: 'info', message: 'Feiertage bleiben unverändert.' });
@@ -197,22 +206,24 @@ const RosterPage = () => {
       }));
       bulkSetCells(updates);
     },
-    [employees, bulkSetCells, isHolidayLocked, addToast],
+    [employees, bulkSetCells, isHolidayLocked, addToast, allowEditing],
   );
 
   const handleClearCell = useCallback(
     (cell: SelectedCell) => {
+      if (!allowEditing) return;
       if (isHolidayLocked(cell.weekId, cell.dayIndex)) {
         addToast({ type: 'warning', message: 'Automatischer Feiertag kann nicht gelöscht werden.' });
         return;
       }
       clearCell(cell.employeeId, cell.weekId, cell.dayIndex);
     },
-    [clearCell, isHolidayLocked, addToast],
+    [clearCell, isHolidayLocked, addToast, allowEditing],
   );
 
   const handleCopy = useCallback(
     (cell: SelectedCell, scope: CopyScope) => {
+      if (!allowEditing) return;
       if (scope === 'cell') {
         const match = cells.find(
           (item) =>
@@ -237,11 +248,12 @@ const RosterPage = () => {
       setCopyBuffer({ scope, weekId: cell.weekId, cells: weekCells });
       addToast({ type: 'info', message: 'Woche kopiert' });
     },
-    [cells, addToast],
+    [cells, addToast, allowEditing],
   );
 
   const handlePaste = useCallback(
     (target: SelectedCell) => {
+      if (!allowEditing) return;
       if (!copyBuffer) return;
       if (copyBuffer.scope === 'cell') {
         const [cellData] = copyBuffer.cells;
@@ -279,49 +291,58 @@ const RosterPage = () => {
       }
       bulkSetCells(filtered);
     },
-    [copyBuffer, setCell, bulkSetCells, isHolidayLocked, addToast],
+    [copyBuffer, setCell, bulkSetCells, isHolidayLocked, addToast, allowEditing],
   );
 
   const handleAddEmployee = useCallback(
     (name: string) => {
+      if (!allowEditing) return;
       addEmployee(name);
       addToast({ type: 'success', message: `Mitarbeiter ${name} hinzugefügt.` });
     },
-    [addEmployee, addToast],
+    [addEmployee, addToast, allowEditing],
   );
 
   const handleRemoveEmployee = useCallback(
     (id: string) => {
+      if (!allowEditing) return;
       const employee = employees.find((item) => item.id === id);
       removeEmployee(id);
       if (employee) {
         addToast({ type: 'info', message: `${employee.name} entfernt.` });
       }
     },
-    [removeEmployee, employees, addToast],
+    [removeEmployee, employees, addToast, allowEditing],
   );
 
   const handleReorderEmployees = useCallback(
     (sourceIndex: number, targetIndex: number) => {
+      if (!allowEditing) return;
       reorderEmployees(sourceIndex, targetIndex);
     },
-    [reorderEmployees],
+    [reorderEmployees, allowEditing],
   );
 
   const handleUpdateCalendar = useCallback(
     (startMondayISO: string, options: { clearAssignments: boolean; shiftRelatively: boolean }) => {
+      if (!allowEditing) return;
       updateCalendarBase(startMondayISO, options);
       setCalendarDialogOpen(false);
       addToast({ type: 'success', message: 'Kalenderbasis aktualisiert.' });
     },
-    [updateCalendarBase, addToast],
+    [updateCalendarBase, addToast, allowEditing],
   );
 
   const triggerImport = () => {
+    if (!allowEditing) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!allowEditing) {
+      event.target.value = '';
+      return;
+    }
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -344,6 +365,7 @@ const RosterPage = () => {
   };
 
   const applyImportedCells = (imported: RosterCell[]) => {
+    if (!allowEditing) return;
     const map = new Map<string, DayAssignment | null>();
     imported.forEach((cell) => {
       const key = `${cell.employeeId}_${cell.weekId}_${cell.dayIndex}`;
@@ -387,24 +409,29 @@ const RosterPage = () => {
   return (
     <Fragment>
       <AppHeader
+        mode={allowEditing ? 'admin' : 'view'}
         onExportCsv={handleExportCsv}
         onExportXlsx={handleExportXlsx}
         onExportPdf={handleExportPdf}
-        onImport={triggerImport}
-        onUndo={undo}
-        onRedo={redo}
+        onImport={allowEditing ? triggerImport : undefined}
+        onUndo={allowEditing ? undo : undefined}
+        onRedo={allowEditing ? redo : undefined}
         onPrint={handlePrint}
-        onManageEmployees={() => setManageEmployeesOpen(true)}
-        onOpenCalendarBase={() => setCalendarDialogOpen(true)}
+        onManageEmployees={allowEditing ? () => setManageEmployeesOpen(true) : undefined}
+        onOpenCalendarBase={allowEditing ? () => setCalendarDialogOpen(true) : undefined}
+        onNavigateAdmin={allowEditing ? undefined : onNavigateAdmin}
+        onNavigatePublic={allowEditing ? onNavigatePublic : undefined}
       />
       <main className="mx-auto flex max-w-[1800px] flex-col gap-6 px-4 py-6" ref={rosterRef}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+        {allowEditing && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        )}
         <Filters
           employeeQuery={filters.employeeQuery}
           assignment={filters.assignment}
@@ -434,6 +461,7 @@ const RosterPage = () => {
                 employees={filteredEmployees}
                 cells={cells}
                 selectedCell={selectedCell}
+                allowEditing={allowEditing}
                 onSelectCell={(cell) => setSelectedCell(cell)}
                 onChangeCell={handleChangeCell}
                 onFillWeek={handleFillWeek}
@@ -457,21 +485,25 @@ const RosterPage = () => {
           Gilt nicht an gesetzlichen Feiertagen, bei Urlaub usw.!
         </footer>
       </main>
-      <EmployeeManagerDialog
-        open={manageEmployeesOpen}
-        employees={employees}
-        onClose={() => setManageEmployeesOpen(false)}
-        onAdd={handleAddEmployee}
-        onUpdate={updateEmployeeName}
-        onRemove={handleRemoveEmployee}
-        onReorder={handleReorderEmployees}
-      />
-      <CalendarBaseDialog
-        open={calendarDialogOpen}
-        calendarBase={calendarBase}
-        onClose={() => setCalendarDialogOpen(false)}
-        onConfirm={handleUpdateCalendar}
-      />
+      {allowEditing && (
+        <EmployeeManagerDialog
+          open={manageEmployeesOpen}
+          employees={employees}
+          onClose={() => setManageEmployeesOpen(false)}
+          onAdd={handleAddEmployee}
+          onUpdate={updateEmployeeName}
+          onRemove={handleRemoveEmployee}
+          onReorder={handleReorderEmployees}
+        />
+      )}
+      {allowEditing && (
+        <CalendarBaseDialog
+          open={calendarDialogOpen}
+          calendarBase={calendarBase}
+          onClose={() => setCalendarDialogOpen(false)}
+          onConfirm={handleUpdateCalendar}
+        />
+      )}
       <Toasts toasts={toasts} onDismiss={removeToast} />
     </Fragment>
   );

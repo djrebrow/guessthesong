@@ -1,13 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import produce from 'immer';
 import { parseISO, startOfISOWeek } from 'date-fns';
-import {
-  DAY_ASSIGNMENTS,
-  EMPLOYEES as INITIAL_EMPLOYEES,
-  INITIAL_ASSIGNMENTS,
-  INITIAL_START_MONDAY_ISO,
-} from '../lib/constants';
 import {
   DayAssignment,
   Employee,
@@ -19,13 +12,22 @@ import {
   RosterState,
   SettingsState,
   ToastMessage,
+  PersistedRosterPayload,
 } from '../types';
 import { buildWeeks, calendarBaseFromWeeks, collectWeekYears, isoString } from '../utils/calendar';
 import { getPublicHolidaysForYears } from '../utils/holidays';
+import {
+  createInitialCalendarBase,
+  createInitialRoster,
+  DEFAULT_FILTERS,
+  DEFAULT_SETTINGS,
+  DEFAULT_WEEK_COUNT,
+} from '../lib/initialData';
+import { fetchRoster, saveRoster } from '../services/rosterApi';
 
 export interface RosterStore extends RosterState {
   toasts: ToastMessage[];
-  initialize: () => void;
+  initialize: () => Promise<void>;
   setCell: (employeeId: string, weekId: string, dayIndex: number, value: DayAssignment | null) => void;
   bulkSetCells: (updates: { employeeId: string; weekId: string; dayIndex: number; value: DayAssignment | null }[]) => void;
   clearCell: (employeeId: string, weekId: string, dayIndex: number) => void;
@@ -48,16 +50,10 @@ export interface RosterStore extends RosterState {
 }
 
 const HISTORY_LIMIT = 50;
-const DEFAULT_WEEKS = 6;
 
 const createHistory = (): HistoryState => ({ past: [], future: [] });
 
 const snapshotCells = (cells: RosterCell[]): RosterCell[] => cells.map((cell) => ({ ...cell }));
-
-const buildInitialWeeks = () => {
-  const startMonday = parseISO(INITIAL_START_MONDAY_ISO);
-  return buildWeeks(startMonday, DEFAULT_WEEKS);
-};
 
 const slugify = (name: string): string =>
   name
@@ -73,20 +69,6 @@ const ensureUniqueId = (existing: Employee[], name: string): string => {
     candidate = `${base}-${counter++}`;
   }
   return candidate;
-};
-
-const createSeedCells = (employees: Employee[], weeks: RosterState['weeks']): RosterCell[] => {
-  const cells: RosterCell[] = [];
-  employees.forEach((employee) => {
-    weeks.forEach((week) => {
-      week.days.forEach((_, index) => {
-        const key = `${employee.id}_${week.id}_${index}`;
-        const value = INITIAL_ASSIGNMENTS[key] ?? null;
-        cells.push({ employeeId: employee.id, weekId: week.id, dayIndex: index, value });
-      });
-    });
-  });
-  return cells;
 };
 
 const computeHolidays = (settings: SettingsState, weeks: RosterState['weeks']): PublicHoliday[] => {
@@ -138,337 +120,397 @@ const withHistorySnapshot = (state: RosterStoreDraft) => {
   state.history.future = [];
 };
 
-const baseSettings: SettingsState = {
-  highContrast: false,
-  fontScale: 1,
-  dateFormat: 'D.M.YYYY',
-  autoHolidayMarking: true,
-  bundesland: 'NI',
-};
+const baseSettings: SettingsState = { ...DEFAULT_SETTINGS };
+const baseFilters: FilterState = { ...DEFAULT_FILTERS };
 
-const baseFilters: FilterState = {
-  employeeQuery: '',
-  assignment: 'Alle',
-};
+export const useRosterStore = create<RosterStore>()((set, get) => {
+  let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
-export const useRosterStore = create<RosterStore>()(
-  persist(
-    (set, get) => ({
-      employees: INITIAL_EMPLOYEES,
-      weeks: [],
-      cells: [],
-      initialized: false,
-      settings: baseSettings,
-      filters: baseFilters,
-      history: createHistory(),
-      calendarBase: { startMondayISO: INITIAL_START_MONDAY_ISO },
-      holidays: [],
-      holidayLocks: {},
-      toasts: [],
-      initialize: () => {
+  const ensureErrorToast = (message: string) => {
+    set(
+      produce<RosterStore>((state) => {
+        if (state.toasts.some((toast) => toast.type === 'error' && toast.message === message)) {
+          return;
+        }
+        state.toasts.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          type: 'error',
+          message,
+        });
+      }),
+    );
+  };
+
+  const buildPersistPayload = (): PersistedRosterPayload => {
+    const state = get();
+    return {
+      employees: state.employees.map((employee) => ({ ...employee })),
+      weeks: state.weeks.map((week) => ({
+        ...week,
+        days: week.days.map((day) => ({ ...day })),
+      })),
+      cells: snapshotCells(state.cells),
+      settings: { ...state.settings },
+      calendarBase: { ...state.calendarBase },
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  const persistToServer = async (payload: PersistedRosterPayload) => {
+    try {
+      await saveRoster(payload);
+    } catch (error) {
+      console.error('Failed to persist roster', error);
+      ensureErrorToast('Speichern am Server fehlgeschlagen.');
+    }
+  };
+
+  const schedulePersist = () => {
+    if (!get().initialized) {
+      return;
+    }
+    if (persistTimer) {
+      clearTimeout(persistTimer);
+    }
+    persistTimer = setTimeout(() => {
+      void persistToServer(buildPersistPayload());
+    }, 200);
+  };
+
+  const applyInitialization = (payload: PersistedRosterPayload) => {
+    set(
+      produce<RosterStore>((state) => {
+        state.employees = payload.employees.map((employee) => ({ ...employee }));
+        state.weeks = payload.weeks.map((week) => ({
+          ...week,
+          days: week.days.map((day) => ({ ...day })),
+        }));
+        state.cells = payload.cells.map((cell) => ({ ...cell }));
+        state.settings = { ...DEFAULT_SETTINGS, ...payload.settings };
+        state.filters = { ...DEFAULT_FILTERS };
+        state.calendarBase = payload.calendarBase?.startMondayISO
+          ? { startMondayISO: payload.calendarBase.startMondayISO }
+          : state.weeks.length
+            ? calendarBaseFromWeeks(state.weeks)
+            : createInitialCalendarBase();
+        state.holidays = computeHolidays(state.settings, state.weeks);
+        state.holidayLocks = {};
+        applyHolidayLocks(state);
+        state.history = createHistory();
+        state.initialized = true;
+      }),
+    );
+  };
+
+  return {
+    employees: [],
+    weeks: [],
+    cells: [],
+    initialized: false,
+    settings: { ...baseSettings },
+    filters: { ...baseFilters },
+    history: createHistory(),
+    calendarBase: createInitialCalendarBase(),
+    holidays: [],
+    holidayLocks: {},
+    toasts: [],
+    initialize: async () => {
+      if (get().initialized) {
         set(
           produce<RosterStore>((state) => {
-            if (state.initialized) {
-              if (!state.calendarBase.startMondayISO && state.weeks.length) {
-                state.calendarBase = calendarBaseFromWeeks(state.weeks);
-              }
-              state.holidays = computeHolidays(state.settings, state.weeks);
-              applyHolidayLocks(state);
-              return;
-            }
-            const weeks = state.weeks.length ? state.weeks : buildInitialWeeks();
-            state.weeks = weeks;
-            state.calendarBase = { startMondayISO: weeks[0]?.days[0]?.date ?? INITIAL_START_MONDAY_ISO };
-            state.employees = state.employees.length ? state.employees : INITIAL_EMPLOYEES;
-            state.cells = state.cells.length ? state.cells : createSeedCells(state.employees, weeks);
-            state.holidays = computeHolidays(state.settings, weeks);
+            state.holidays = computeHolidays(state.settings, state.weeks);
             applyHolidayLocks(state);
-            state.initialized = true;
-            state.history = createHistory();
           }),
         );
-      },
-      setCell: (employeeId, weekId, dayIndex, value) => {
-        set(
-          produce<RosterStore>((state) => {
+        return;
+      }
+      try {
+        const payload = await fetchRoster();
+        if (payload && payload.employees?.length) {
+          applyInitialization(payload);
+          return;
+        }
+        const fallback = createInitialRoster();
+        applyInitialization({ ...fallback, updatedAt: new Date().toISOString() });
+        void persistToServer(buildPersistPayload());
+      } catch (error) {
+        console.error('Failed to fetch roster', error);
+        ensureErrorToast('Dienstplan konnte nicht vom Server geladen werden.');
+        const fallback = createInitialRoster();
+        applyInitialization({ ...fallback, updatedAt: new Date().toISOString() });
+      }
+    },
+    setCell: (employeeId, weekId, dayIndex, value) => {
+      set(
+        produce<RosterStore>((state) => {
+          const lockKey = `${weekId}:${dayIndex}`;
+          if (state.settings.autoHolidayMarking && state.holidayLocks[lockKey]) {
+            return;
+          }
+          withHistorySnapshot(state);
+          const target = state.cells.find(
+            (cell) =>
+              cell.employeeId === employeeId && cell.weekId === weekId && cell.dayIndex === dayIndex,
+          );
+          if (target) {
+            target.value = value;
+          } else {
+            state.cells.push({ employeeId, weekId, dayIndex, value });
+          }
+        }),
+      );
+      schedulePersist();
+    },
+    bulkSetCells: (updates) => {
+      if (!updates.length) return;
+      set(
+        produce<RosterStore>((state) => {
+          withHistorySnapshot(state);
+          updates.forEach(({ employeeId, weekId, dayIndex, value }) => {
             const lockKey = `${weekId}:${dayIndex}`;
             if (state.settings.autoHolidayMarking && state.holidayLocks[lockKey]) {
               return;
             }
-            withHistorySnapshot(state);
             const target = state.cells.find(
               (cell) =>
-                cell.employeeId === employeeId && cell.weekId === weekId && cell.dayIndex === dayIndex,
+                cell.employeeId === employeeId &&
+                cell.weekId === weekId &&
+                cell.dayIndex === dayIndex,
             );
             if (target) {
               target.value = value;
             } else {
               state.cells.push({ employeeId, weekId, dayIndex, value });
             }
-          }),
-        );
-      },
-      bulkSetCells: (updates) => {
-        if (!updates.length) return;
-        set(
-          produce<RosterStore>((state) => {
-            withHistorySnapshot(state);
-            updates.forEach(({ employeeId, weekId, dayIndex, value }) => {
-              const lockKey = `${weekId}:${dayIndex}`;
-              if (state.settings.autoHolidayMarking && state.holidayLocks[lockKey]) {
-                return;
-              }
-              const target = state.cells.find(
-                (cell) =>
-                  cell.employeeId === employeeId &&
-                  cell.weekId === weekId &&
-                  cell.dayIndex === dayIndex,
-              );
-              if (target) {
-                target.value = value;
-              } else {
-                state.cells.push({ employeeId, weekId, dayIndex, value });
-              }
-            });
-          }),
-        );
-      },
-      clearCell: (employeeId, weekId, dayIndex) => {
-        set(
-          produce<RosterStore>((state) => {
-            const lockKey = `${weekId}:${dayIndex}`;
-            if (state.settings.autoHolidayMarking && state.holidayLocks[lockKey]) {
-              return;
-            }
-            withHistorySnapshot(state);
-            const target = state.cells.find(
-              (cell) =>
-                cell.employeeId === employeeId && cell.weekId === weekId && cell.dayIndex === dayIndex,
-            );
-            if (target) {
-              target.value = null;
-            }
-          }),
-        );
-      },
-      setSettings: (settings) => {
-        set(
-          produce<RosterStore>((state) => {
-            const prevBundesland = state.settings.bundesland;
-            const prevAuto = state.settings.autoHolidayMarking;
-            state.settings = { ...state.settings, ...settings };
-            if (
-              settings.dateFormat ||
-              settings.fontScale ||
-              settings.highContrast !== undefined
-            ) {
-              // no-op for history
-            }
-            const requiresHolidayRefresh =
-              (settings.autoHolidayMarking !== undefined && settings.autoHolidayMarking !== prevAuto) ||
-              (settings.bundesland && settings.bundesland !== prevBundesland);
-            if (requiresHolidayRefresh) {
-              state.holidays = computeHolidays(state.settings, state.weeks);
-              applyHolidayLocks(state);
-            } else if (settings.autoHolidayMarking === false) {
-              state.holidayLocks = {};
-            }
-          }),
-        );
-      },
-      setFilters: (filters) => {
-        set(
-          produce<RosterStore>((state) => {
-            state.filters = { ...state.filters, ...filters };
-          }),
-        );
-      },
-      undo: () => {
-        const { history } = get();
-        if (!history.past.length) return;
-        set(
-          produce<RosterStore>((state) => {
-            const previous = state.history.past.pop();
-            if (!previous) return;
-            const current = snapshotCells(state.cells);
-            state.history.future.unshift(current);
-            if (state.history.future.length > HISTORY_LIMIT) {
-              state.history.future.pop();
-            }
-            state.cells = snapshotCells(previous);
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-      redo: () => {
-        const { history } = get();
-        if (!history.future.length) return;
-        set(
-          produce<RosterStore>((state) => {
-            const next = state.history.future.shift();
-            if (!next) return;
-            const current = snapshotCells(state.cells);
-            state.history.past.push(current);
-            if (state.history.past.length > HISTORY_LIMIT) {
-              state.history.past.shift();
-            }
-            state.cells = snapshotCells(next);
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-      resetHistory: () => {
-        set(
-          produce<RosterStore>((state) => {
-            state.history = createHistory();
-          }),
-        );
-      },
-      replaceAllCells: (cells) => {
-        set(
-          produce<RosterStore>((state) => {
-            withHistorySnapshot(state);
-            state.cells = snapshotCells(cells);
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-      addToast: (toast) => {
-        const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        set(
-          produce<RosterStore>((state) => {
-            state.toasts.push({ id, ...toast });
-          }),
-        );
-      },
-      removeToast: (id) => {
-        set(
-          produce<RosterStore>((state) => {
-            state.toasts = state.toasts.filter((toast) => toast.id !== id);
-          }),
-        );
-      },
-      addEmployee: (name) => {
-        set(
-          produce<RosterStore>((state) => {
-            const id = ensureUniqueId(state.employees, name);
-            const employee: Employee = { id, name };
-            state.employees.push(employee);
-            state.weeks.forEach((week) => {
-              week.days.forEach((_, index) => {
-                state.cells.push({ employeeId: id, weekId: week.id, dayIndex: index, value: null });
-              });
-            });
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-      updateEmployeeName: (id, name) => {
-        set(
-          produce<RosterStore>((state) => {
-            const employee = state.employees.find((item) => item.id === id);
-            if (employee) {
-              employee.name = name;
-            }
-          }),
-        );
-      },
-      removeEmployee: (id) => {
-        set(
-          produce<RosterStore>((state) => {
-            state.employees = state.employees.filter((employee) => employee.id !== id);
-            state.cells = state.cells.filter((cell) => cell.employeeId !== id);
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-      reorderEmployees: (sourceIndex, targetIndex) => {
-        set(
-          produce<RosterStore>((state) => {
-            if (sourceIndex < 0 || sourceIndex >= state.employees.length) return;
-            if (targetIndex < 0 || targetIndex >= state.employees.length) return;
-            if (sourceIndex === targetIndex) return;
-            const [moved] = state.employees.splice(sourceIndex, 1);
-            if (!moved) return;
-            state.employees.splice(targetIndex, 0, moved);
-          }),
-        );
-      },
-      updateCalendarBase: (startMondayISO, options) => {
-        set(
-          produce<RosterStore>((state) => {
-            const newStart = isoString(startOfISOWeek(parseISO(startMondayISO)));
-            const oldWeeks = state.weeks;
-            const oldCells = snapshotCells(state.cells);
-            const weeks = buildWeeks(parseISO(newStart), oldWeeks.length || DEFAULT_WEEKS);
-            state.weeks = weeks;
-            state.calendarBase = { startMondayISO: newStart };
-            const newCells: RosterCell[] = [];
-            const dateValueMap = new Map<string, DayAssignment | null>();
-            if (!options.clearAssignments) {
-              oldWeeks.forEach((week) => {
-                week.days.forEach((day, dayIndex) => {
-                  state.employees.forEach((employee) => {
-                    const cell = oldCells.find(
-                      (item) =>
-                        item.employeeId === employee.id &&
-                        item.weekId === week.id &&
-                        item.dayIndex === dayIndex,
-                    );
-                    if (!cell || cell.value === null) return;
-                    dateValueMap.set(`${employee.id}-${day.date}`, cell.value);
-                  });
-                });
-              });
-            }
-            state.employees.forEach((employee) => {
-              weeks.forEach((week, weekIndex) => {
-                week.days.forEach((day, dayIndex) => {
-                  let value: DayAssignment | null = null;
-                  if (!options.clearAssignments) {
-                    if (options.shiftRelatively) {
-                      const oldWeek = oldWeeks[weekIndex];
-                      if (oldWeek) {
-                        const match = oldCells.find(
-                          (cell) =>
-                            cell.employeeId === employee.id &&
-                            cell.weekId === oldWeek.id &&
-                            cell.dayIndex === dayIndex,
-                        );
-                        value = match?.value ?? null;
-                      }
-                    } else {
-                      value = dateValueMap.get(`${employee.id}-${day.date}`) ?? null;
-                    }
-                  }
-                  newCells.push({ employeeId: employee.id, weekId: week.id, dayIndex, value });
-                });
-              });
-            });
-            state.cells = newCells;
-            state.history = createHistory();
-            state.holidays = computeHolidays(state.settings, weeks);
-            applyHolidayLocks(state);
-          }),
-        );
-      },
-    }),
-    {
-      name: 'roster-store',
-      partialize: (state) => ({
-        employees: state.employees,
-        weeks: state.weeks,
-        cells: state.cells,
-        settings: state.settings,
-        filters: state.filters,
-        calendarBase: state.calendarBase,
-      }),
-      onRehydrateStorage: () => (state) => {
-        state?.initialize();
-      },
+          });
+        }),
+      );
+      schedulePersist();
     },
-  ),
-);
+    clearCell: (employeeId, weekId, dayIndex) => {
+      set(
+        produce<RosterStore>((state) => {
+          const lockKey = `${weekId}:${dayIndex}`;
+          if (state.settings.autoHolidayMarking && state.holidayLocks[lockKey]) {
+            return;
+          }
+          withHistorySnapshot(state);
+          const target = state.cells.find(
+            (cell) =>
+              cell.employeeId === employeeId && cell.weekId === weekId && cell.dayIndex === dayIndex,
+          );
+          if (target) {
+            target.value = null;
+          }
+        }),
+      );
+      schedulePersist();
+    },
+    setSettings: (settings) => {
+      set(
+        produce<RosterStore>((state) => {
+          const prevBundesland = state.settings.bundesland;
+          const prevAuto = state.settings.autoHolidayMarking;
+          state.settings = { ...state.settings, ...settings };
+          const requiresHolidayRefresh =
+            (settings.autoHolidayMarking !== undefined && settings.autoHolidayMarking !== prevAuto) ||
+            (settings.bundesland && settings.bundesland !== prevBundesland);
+          if (requiresHolidayRefresh) {
+            state.holidays = computeHolidays(state.settings, state.weeks);
+            applyHolidayLocks(state);
+          } else if (settings.autoHolidayMarking === false) {
+            state.holidayLocks = {};
+          }
+        }),
+      );
+      schedulePersist();
+    },
+    setFilters: (filters) => {
+      set(
+        produce<RosterStore>((state) => {
+          state.filters = { ...state.filters, ...filters };
+        }),
+      );
+    },
+    undo: () => {
+      const { history } = get();
+      if (!history.past.length) return;
+      set(
+        produce<RosterStore>((state) => {
+          const previous = state.history.past.pop();
+          if (!previous) return;
+          const current = snapshotCells(state.cells);
+          state.history.future.unshift(current);
+          if (state.history.future.length > HISTORY_LIMIT) {
+            state.history.future.pop();
+          }
+          state.cells = snapshotCells(previous);
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+    redo: () => {
+      const { history } = get();
+      if (!history.future.length) return;
+      set(
+        produce<RosterStore>((state) => {
+          const next = state.history.future.shift();
+          if (!next) return;
+          const current = snapshotCells(state.cells);
+          state.history.past.push(current);
+          if (state.history.past.length > HISTORY_LIMIT) {
+            state.history.past.shift();
+          }
+          state.cells = snapshotCells(next);
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+    resetHistory: () => {
+      set(
+        produce<RosterStore>((state) => {
+          state.history = createHistory();
+        }),
+      );
+    },
+    replaceAllCells: (cells) => {
+      set(
+        produce<RosterStore>((state) => {
+          withHistorySnapshot(state);
+          state.cells = snapshotCells(cells);
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+    addToast: (toast) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      set(
+        produce<RosterStore>((state) => {
+          state.toasts.push({ id, ...toast });
+        }),
+      );
+    },
+    removeToast: (id) => {
+      set(
+        produce<RosterStore>((state) => {
+          state.toasts = state.toasts.filter((toast) => toast.id !== id);
+        }),
+      );
+    },
+    addEmployee: (name) => {
+      set(
+        produce<RosterStore>((state) => {
+          const id = ensureUniqueId(state.employees, name);
+          const employee: Employee = { id, name };
+          state.employees.push(employee);
+          state.weeks.forEach((week) => {
+            week.days.forEach((_, index) => {
+              state.cells.push({ employeeId: id, weekId: week.id, dayIndex: index, value: null });
+            });
+          });
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+    updateEmployeeName: (id, name) => {
+      set(
+        produce<RosterStore>((state) => {
+          const employee = state.employees.find((item) => item.id === id);
+          if (employee) {
+            employee.name = name;
+          }
+        }),
+      );
+      schedulePersist();
+    },
+    removeEmployee: (id) => {
+      set(
+        produce<RosterStore>((state) => {
+          state.employees = state.employees.filter((employee) => employee.id !== id);
+          state.cells = state.cells.filter((cell) => cell.employeeId !== id);
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+    reorderEmployees: (sourceIndex, targetIndex) => {
+      set(
+        produce<RosterStore>((state) => {
+          if (sourceIndex < 0 || sourceIndex >= state.employees.length) return;
+          if (targetIndex < 0 || targetIndex >= state.employees.length) return;
+          if (sourceIndex === targetIndex) return;
+          const [moved] = state.employees.splice(sourceIndex, 1);
+          if (!moved) return;
+          state.employees.splice(targetIndex, 0, moved);
+        }),
+      );
+      schedulePersist();
+    },
+    updateCalendarBase: (startMondayISO, options) => {
+      set(
+        produce<RosterStore>((state) => {
+          const newStart = isoString(startOfISOWeek(parseISO(startMondayISO)));
+          const oldWeeks = state.weeks;
+          const oldCells = snapshotCells(state.cells);
+          const weeks = buildWeeks(parseISO(newStart), oldWeeks.length || DEFAULT_WEEK_COUNT);
+          state.weeks = weeks;
+          state.calendarBase = { startMondayISO: newStart };
+          const newCells: RosterCell[] = [];
+          const dateValueMap = new Map<string, DayAssignment | null>();
+          if (!options.clearAssignments) {
+            oldWeeks.forEach((week) => {
+              week.days.forEach((day, dayIndex) => {
+                state.employees.forEach((employee) => {
+                  const cell = oldCells.find(
+                    (item) =>
+                      item.employeeId === employee.id &&
+                      item.weekId === week.id &&
+                      item.dayIndex === dayIndex,
+                  );
+                  if (!cell || cell.value === null) return;
+                  dateValueMap.set(`${employee.id}-${day.date}`, cell.value);
+                });
+              });
+            });
+          }
+          state.employees.forEach((employee) => {
+            weeks.forEach((week, weekIndex) => {
+              week.days.forEach((day, dayIndex) => {
+                let value: DayAssignment | null = null;
+                if (!options.clearAssignments) {
+                  if (options.shiftRelatively) {
+                    const oldWeek = oldWeeks[weekIndex];
+                    if (oldWeek) {
+                      const match = oldCells.find(
+                        (cell) =>
+                          cell.employeeId === employee.id &&
+                          cell.weekId === oldWeek.id &&
+                          cell.dayIndex === dayIndex,
+                      );
+                      value = match?.value ?? null;
+                    }
+                  } else {
+                    value = dateValueMap.get(`${employee.id}-${day.date}`) ?? null;
+                  }
+                }
+                newCells.push({ employeeId: employee.id, weekId: week.id, dayIndex, value });
+              });
+            });
+          });
+          state.cells = newCells;
+          state.history = createHistory();
+          state.holidays = computeHolidays(state.settings, weeks);
+          applyHolidayLocks(state);
+        }),
+      );
+      schedulePersist();
+    },
+  };
+});
 
 export const findCellValue = (
   cells: RosterCell[],
@@ -528,9 +570,4 @@ export const assignmentGroups: Record<string, DayAssignment[]> = {
   absence: ['Abwesend', 'Feiertag'],
   special: ['Sonder', 'Connox', 'Schmalgang', 'Außenlager', 'Kleinteile/Konsi'],
 };
-
-export const assignmentOptions = DAY_ASSIGNMENTS.map((value) => ({
-  id: value,
-  label: value,
-}));
 
