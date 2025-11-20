@@ -1,4 +1,4 @@
-import { DayAssignment, Employee, PublicHoliday, Week } from '../types';
+import { Bundesland, DayAssignment, Employee, PublicHoliday, Week } from '../types';
 
 export const INITIAL_START_MONDAY_ISO = '2025-10-13';
 
@@ -12,6 +12,14 @@ export const DAY_ASSIGNMENTS: DayAssignment[] = [
   'Schmalgang',
   'Außenlager',
   'Kleinteile/Konsi',
+];
+
+export const BUNDESLAENDER: { id: Bundesland; label: string }[] = [
+  { id: 'DE', label: 'Bundesweit' },
+  { id: 'NI', label: 'Niedersachsen' },
+  { id: 'BY', label: 'Bayern' },
+  { id: 'NW', label: 'Nordrhein-Westfalen' },
+  { id: 'BE', label: 'Berlin' },
 ];
 
 export const EMPLOYEES: Employee[] = [
@@ -106,16 +114,36 @@ export const WEEKS: Week[] = [
   },
 ];
 
+export const NATIONAL_HOLIDAYS_2025: PublicHoliday[] = [
+  { date: '2025-01-01', name: 'Neujahr', bundesland: 'DE' },
+  { date: '2025-04-18', name: 'Karfreitag', bundesland: 'DE' },
+  { date: '2025-04-21', name: 'Ostermontag', bundesland: 'DE' },
+  { date: '2025-05-01', name: 'Tag der Arbeit', bundesland: 'DE' },
+  { date: '2025-05-29', name: 'Christi Himmelfahrt', bundesland: 'DE' },
+  { date: '2025-06-09', name: 'Pfingstmontag', bundesland: 'DE' },
+  { date: '2025-10-03', name: 'Tag der Deutschen Einheit', bundesland: 'DE' },
+  { date: '2025-12-25', name: '1. Weihnachtstag', bundesland: 'DE' },
+  { date: '2025-12-26', name: '2. Weihnachtstag', bundesland: 'DE' },
+];
+
 export const LOWER_SAXONY_HOLIDAYS_2025: PublicHoliday[] = [
-  { date: '2025-04-18', name: 'Karfreitag', bundesland: 'NI' },
-  { date: '2025-04-21', name: 'Ostermontag', bundesland: 'NI' },
-  { date: '2025-05-01', name: 'Tag der Arbeit', bundesland: 'NI' },
-  { date: '2025-05-29', name: 'Christi Himmelfahrt', bundesland: 'NI' },
-  { date: '2025-06-09', name: 'Pfingstmontag', bundesland: 'NI' },
-  { date: '2025-10-03', name: 'Tag der Deutschen Einheit', bundesland: 'NI' },
   { date: '2025-10-31', name: 'Reformationstag', bundesland: 'NI' },
-  { date: '2025-12-25', name: '1. Weihnachtstag', bundesland: 'NI' },
-  { date: '2025-12-26', name: '2. Weihnachtstag', bundesland: 'NI' },
+];
+
+export const BAVARIA_HOLIDAYS_2025: PublicHoliday[] = [
+  { date: '2025-01-06', name: 'Heilige Drei Könige', bundesland: 'BY' },
+  { date: '2025-06-19', name: 'Fronleichnam', bundesland: 'BY' },
+  { date: '2025-08-15', name: 'Mariä Himmelfahrt', bundesland: 'BY' },
+  { date: '2025-11-01', name: 'Allerheiligen', bundesland: 'BY' },
+];
+
+export const NORTH_RHINE_WESTPHALIA_HOLIDAYS_2025: PublicHoliday[] = [
+  { date: '2025-06-19', name: 'Fronleichnam', bundesland: 'NW' },
+  { date: '2025-11-01', name: 'Allerheiligen', bundesland: 'NW' },
+];
+
+export const BERLIN_HOLIDAYS_2025: PublicHoliday[] = [
+  { date: '2025-03-08', name: 'Internationaler Frauentag', bundesland: 'BE' },
 ];
 
 export const INITIAL_ASSIGNMENTS: Record<string, DayAssignment> = {

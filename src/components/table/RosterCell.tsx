@@ -172,8 +172,8 @@ const RosterCell = ({
 
   const tooltip = locked
     ? lockReason
-      ? `Automatisch als gesetzlicher Feiertag (Niedersachsen) markiert: ${lockReason}`
-      : 'Automatisch als gesetzlicher Feiertag (Niedersachsen) markiert'
+      ? `Automatisch als gesetzlicher Feiertag markiert: ${lockReason}`
+      : 'Automatisch als gesetzlicher Feiertag markiert'
     : undefined;
 
   return (
