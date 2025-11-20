@@ -1,3 +1,5 @@
+import { BUNDESLAENDER } from '../../lib/constants';
+import { Bundesland } from '../../types';
 import { useTranslation } from 'react-i18next';
 
 interface SettingsPanelProps {
@@ -5,13 +7,13 @@ interface SettingsPanelProps {
   fontScale: number;
   dateFormat: 'D.M.YYYY' | 'DD.MM.YYYY';
   autoHolidayMarking: boolean;
-  bundesland: 'NI';
+  bundesland: Bundesland;
   onToggleContrast: () => void;
   onIncreaseFont: () => void;
   onDecreaseFont: () => void;
   onToggleDateFormat: () => void;
   onToggleHolidayMarking: (value: boolean) => void;
-  onBundeslandChange: (bundesland: 'NI') => void;
+  onBundeslandChange: (bundesland: Bundesland) => void;
 }
 
 const SettingsPanel = ({
@@ -78,10 +80,14 @@ const SettingsPanel = ({
           <span>{t('app.settings.region')}</span>
           <select
             value={bundesland}
-            onChange={(event) => onBundeslandChange(event.target.value as 'NI')}
+            onChange={(event) => onBundeslandChange(event.target.value as Bundesland)}
             className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
           >
-            <option value="NI">Niedersachsen</option>
+            {BUNDESLAENDER.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>

@@ -1,7 +1,7 @@
 import { parseISO } from 'date-fns';
 import { buildWeeks, collectWeekYears, fromISOWeek } from '../src/utils/calendar';
 import { getPublicHolidaysForYears, isPublicHoliday } from '../src/utils/holidays';
-import { LOWER_SAXONY_HOLIDAYS_2025 } from '../src/lib/constants';
+import { LOWER_SAXONY_HOLIDAYS_2025, NATIONAL_HOLIDAYS_2025 } from '../src/lib/constants';
 
 describe('calendar utilities', () => {
   it('computes monday for ISO week 1/2025', () => {
@@ -25,7 +25,8 @@ describe('calendar utilities', () => {
 describe('holiday utilities', () => {
   it('returns Niedersachsen holidays for 2025', () => {
     const holidays = getPublicHolidaysForYears('NI', [2025]);
-    expect(holidays).toHaveLength(LOWER_SAXONY_HOLIDAYS_2025.length);
+    const expectedLength = NATIONAL_HOLIDAYS_2025.length + LOWER_SAXONY_HOLIDAYS_2025.length;
+    expect(holidays).toHaveLength(expectedLength);
     expect(holidays.some((holiday) => holiday.date === '2025-10-31')).toBe(true);
   });
 

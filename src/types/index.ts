@@ -36,12 +36,14 @@ export interface RosterCell {
   value: DayAssignment | null;
 }
 
+export type Bundesland = 'DE' | 'NI' | 'BY' | 'NW' | 'BE';
+
 export interface SettingsState {
   highContrast: boolean;
   fontScale: number;
   dateFormat: 'D.M.YYYY' | 'DD.MM.YYYY';
   autoHolidayMarking: boolean;
-  bundesland: 'NI';
+  bundesland: Bundesland;
 }
 
 export interface FilterState {
@@ -67,7 +69,7 @@ export interface CalendarBase {
 export interface PublicHoliday {
   date: string;
   name: string;
-  bundesland: 'NI';
+  bundesland: Bundesland;
 }
 
 export interface HolidayLock {
